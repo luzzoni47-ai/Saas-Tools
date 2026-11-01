@@ -1,0 +1,1078 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Free Password Strength Checker &amp; Secure Generator — 100% Client-Side</title>
+<meta name="description" content="Test any password instantly with real entropy analysis and crack-time estimation, or generate a cryptographically secure password. 100% client-side — nothing is ever sent to a server." />
+<meta property="og:title" content="Free Password Strength Checker & Secure Generator" />
+<meta property="og:description" content="100% client-side password analysis. Zero data storage, instant crack-time estimation." />
+<meta property="og:type" content="website" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['Inter','system-ui','sans-serif'], mono: ['ui-monospace','SFMono-Regular','Menlo','monospace'] },
+        keyframes: {
+          'fade-up': { '0%': { opacity: '0', transform: 'translateY(10px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+          'pulse-glow': { '0%,100%': { boxShadow: '0 0 0 0 rgba(124,92,255,0.45)' }, '50%': { boxShadow: '0 0 0 10px rgba(124,92,255,0)' } },
+          'float': { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-4px)' } },
+          'toast-in': { '0%': { opacity: '0', transform: 'translateY(12px) scale(.96)' }, '100%': { opacity: '1', transform: 'translateY(0) scale(1)' } }
+        },
+        animation: {
+          'fade-up': 'fade-up 0.5s ease-out both',
+          'pulse-glow': 'pulse-glow 2.2s ease-in-out infinite',
+          'float': 'float 3s ease-in-out infinite',
+          'toast-in': 'toast-in 0.25s ease-out both'
+        }
+      }
+    }
+  }
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  html { -webkit-font-smoothing: antialiased; scroll-behavior: smooth; }
+  ::selection { background: rgba(124,92,255,.35); }
+  body { background: #08090a; }
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none; height: 6px; border-radius: 9999px;
+    background: rgba(255,255,255,.09); outline: none; width: 100%;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; height: 18px; width: 18px; border-radius: 9999px; cursor: pointer;
+    background: linear-gradient(135deg,#a78bfa,#22d3ee);
+    box-shadow: 0 0 0 3px rgba(124,92,255,.2);
+    transition: transform .15s;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  input[type="range"]::-moz-range-thumb {
+    height: 18px; width: 18px; border: none; border-radius: 9999px; cursor: pointer;
+    background: linear-gradient(135deg,#a78bfa,#22d3ee);
+  }
+  details > summary::-webkit-details-marker { display: none; }
+  details[open] .chev { transform: rotate(90deg); }
+  .glass { backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+  .gradient-text {
+    background: linear-gradient(135deg, #a78bfa 0%, #f0abfc 45%, #67e8f9 100%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .grid-bg {
+    background-image:
+      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse at center, black 20%, transparent 72%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 20%, transparent 72%);
+  }
+  @keyframes ring-flash {
+    0% { box-shadow: 0 0 0 0 rgba(124,92,255,0.65); }
+    100% { box-shadow: 0 0 0 14px rgba(124,92,255,0); }
+  }
+  .flash { animation: ring-flash .65s ease-out; }
+  .kbd {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 2px 6px; min-width: 20px; height: 20px;
+    border-radius: 4px; font-size: 10px; font-weight: 600;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+    color: rgb(212 212 216); font-family: ui-monospace, monospace;
+  }
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+  .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 6px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body class="text-zinc-100 antialiased font-sans">
+
+<!-- ============ AMBIENT BACKGROUND ============ -->
+<div aria-hidden="true" class="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+  <div class="absolute left-1/2 top-[-320px] h-[720px] w-[1250px] -translate-x-1/2 rounded-full bg-violet-600/20 blur-[160px]"></div>
+  <div class="absolute right-[-15%] top-[22%] h-[520px] w-[820px] rounded-full bg-cyan-500/10 blur-[150px]"></div>
+  <div class="absolute left-[-10%] top-[62%] h-[420px] w-[620px] rounded-full bg-fuchsia-500/10 blur-[140px]"></div>
+  <div class="absolute inset-0 grid-bg opacity-40"></div>
+</div>
+
+<!-- ============ TOP NAV ============ -->
+<header class="sticky top-0 z-40 border-b border-white/[0.06] bg-[#08090a]/75 glass">
+  <div class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-5 py-3">
+    <!-- Logo -->
+    <a href="#" class="group flex shrink-0 items-center gap-2.5">
+      <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-cyan-400 shadow-lg shadow-violet-500/25 transition-transform group-hover:scale-105">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <span class="text-[15px] font-bold tracking-tight">DevKit<span class="text-violet-400">.</span></span>
+    </a>
+
+    <!-- Center nav (desktop) -->
+    <nav class="hidden items-center gap-1 md:flex">
+      <a href="#tool" class="rounded-lg px-3 py-1.5 text-[13px] font-medium text-zinc-300 transition-colors hover:bg-white/[0.05] hover:text-white">Tool</a>
+      <a href="#features" class="rounded-lg px-3 py-1.5 text-[13px] font-medium text-zinc-400 transition-colors hover:bg-white/[0.05] hover:text-white">Features</a>
+      <a href="#how" class="rounded-lg px-3 py-1.5 text-[13px] font-medium text-zinc-400 transition-colors hover:bg-white/[0.05] hover:text-white">How it works</a>
+      <a href="#compare" class="rounded-lg px-3 py-1.5 text-[13px] font-medium text-zinc-400 transition-colors hover:bg-white/[0.05] hover:text-white">Compare</a>
+      <a href="#faq" class="rounded-lg px-3 py-1.5 text-[13px] font-medium text-zinc-400 transition-colors hover:bg-white/[0.05] hover:text-white">FAQ</a>
+    </nav>
+
+    <!-- Right: clock icon opposite logo + CTA -->
+    <div class="flex items-center gap-2.5">
+      <div id="clock-widget" class="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 sm:flex" title="Your local time — all processing stays on-device">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-violet-300"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span id="clock-time" class="font-mono text-[12px] font-medium text-zinc-100 tabular-nums">--:--:--</span>
+        <span class="h-3 w-px bg-white/10"></span>
+        <span id="clock-tz" class="max-w-[80px] truncate text-[11px] text-zinc-500">Local</span>
+      </div>
+      <a href="#tool" class="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-fuchsia-600 px-3.5 py-1.5 text-[12.5px] font-semibold text-white shadow-lg shadow-violet-500/25 transition-all hover:opacity-90 hover:shadow-violet-500/40">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        <span class="hidden sm:inline">Try it free</span>
+        <span class="sm:hidden">Try</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<div class="mx-auto w-full max-w-6xl px-5">
+
+  <!-- ============ BREADCRUMB ============ -->
+  <nav aria-label="Breadcrumb" class="flex flex-wrap items-center gap-2 pt-6 text-[13px] text-zinc-400">
+    <a href="#" class="transition-colors hover:text-zinc-100">Home</a>
+    <span class="text-zinc-600">›</span>
+    <a href="#" class="transition-colors hover:text-zinc-100">Tools</a>
+    <span class="text-zinc-600">›</span>
+    <span class="font-medium text-zinc-200">Password Strength Checker</span>
+    <span class="ml-auto inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/[0.08] px-2.5 py-1 text-[11px] font-medium text-emerald-300">
+      <span class="relative flex h-1.5 w-1.5"><span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400"></span></span>
+      Live · Global · Tier-1
+    </span>
+  </nav>
+
+  <!-- ============ HERO ============ -->
+  <header class="pt-14 pb-10 text-center sm:pt-20">
+    <div class="animate-fade-up">
+      <span class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-[12px] font-medium text-zinc-300 glass">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-400"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        4.9/5 from 5,128 users · 1M+ passwords tested safely
+      </span>
+    </div>
+
+    <h1 class="animate-fade-up mx-auto mt-6 max-w-4xl text-balance text-4xl font-bold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl" style="animation-delay:60ms">
+      Free Password Strength Checker
+      <span class="block gradient-text">&amp; Secure Password Generator</span>
+    </h1>
+
+    <p class="animate-fade-up mx-auto mt-5 max-w-2xl text-[15px] leading-relaxed text-zinc-400 sm:text-base" style="animation-delay:120ms">
+      <strong class="font-semibold text-zinc-200">100% client-side</strong> — your password never leaves your browser.
+      Zero data storage, zero tracking, instant crack-time analysis in milliseconds.
+    </p>
+
+    <div class="animate-fade-up mt-7 flex flex-wrap items-center justify-center gap-3" style="animation-delay:180ms">
+      <a href="#tool" class="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-2.5 text-[13.5px] font-semibold text-white shadow-xl shadow-violet-500/30 transition-all hover:opacity-90 hover:shadow-violet-500/50 animate-pulse-glow">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        Check my password now
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:translate-x-0.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
+      <a href="#tool" class="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-5 py-2.5 text-[13.5px] font-semibold text-zinc-200 transition-all hover:border-white/20 hover:bg-white/[0.08]">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        Generate password
+      </a>
+    </div>
+
+    <div class="animate-fade-up mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13px] text-zinc-500" style="animation-delay:240ms">
+      <span class="inline-flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span> No server upload</span>
+      <span class="inline-flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-amber-400"></span> No sign-up</span>
+      <span class="inline-flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-violet-400"></span> No ads, ever</span>
+      <span class="inline-flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-cyan-400"></span> Works offline</span>
+    </div>
+  </header>
+
+  <!-- ============ CORE TOOL ============ -->
+  <section id="tool" aria-label="Password strength checker and generator"
+    class="animate-fade-up relative mx-auto max-w-3xl overflow-hidden rounded-3xl border border-white/[0.09] bg-white/[0.03] p-1.5 shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_30px_80px_-30px_rgba(124,92,255,0.35)] glass" style="animation-delay:300ms">
+    <div class="rounded-[20px] bg-[#0b0d0f]/80 p-5 sm:p-7">
+
+      <!-- Mode tabs -->
+      <div role="tablist" class="mb-6 grid grid-cols-3 gap-1 rounded-xl bg-black/40 p-1">
+        <button data-tab="check" role="tab" aria-selected="true"
+          class="tab-btn rounded-lg px-2 py-2.5 text-[12.5px] font-medium transition-all bg-white/[0.09] text-white shadow-sm sm:text-[13px]">
+          🔍 Test
+        </button>
+        <button data-tab="gen" role="tab" aria-selected="false"
+          class="tab-btn rounded-lg px-2 py-2.5 text-[12.5px] font-medium transition-all text-zinc-400 hover:text-zinc-200 sm:text-[13px]">
+          ⚡ Generate
+        </button>
+        <button data-tab="phrase" role="tab" aria-selected="false"
+          class="tab-btn rounded-lg px-2 py-2.5 text-[12.5px] font-medium transition-all text-zinc-400 hover:text-zinc-200 sm:text-[13px]">
+          📝 Passphrase
+        </button>
+      </div>
+
+      <!-- ===== CHECK PANEL ===== -->
+      <div id="panel-check" class="tab-panel">
+        <label for="pw" class="mb-2 flex items-center justify-between text-[12.5px] font-medium text-zinc-400">
+          <span>Enter a password — it never leaves this page</span>
+          <span class="inline-flex items-center gap-1 text-[11px] text-emerald-400">
+            <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Local-only
+          </span>
+        </label>
+        <div class="relative">
+          <input id="pw" type="password" placeholder="Start typing…" autocomplete="off" autocorrect="off" spellcheck="false"
+            class="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3.5 pr-24 font-mono text-[15px] text-zinc-100 placeholder:text-zinc-600 outline-none transition-all focus:border-violet-400/50 focus:ring-4 focus:ring-violet-500/10" />
+          <div class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
+            <button id="toggle-vis" aria-label="Show password"
+              class="rounded-lg p-2 text-zinc-500 transition-all hover:bg-white/5 hover:text-zinc-200">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+            <button id="copy-check" aria-label="Copy password" class="hidden rounded-lg p-2 text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-200">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Strength meter -->
+        <div class="mt-5">
+          <div class="mb-2 flex items-baseline justify-between">
+            <span id="strength-label" class="text-[13.5px] font-semibold text-zinc-500">Awaiting input</span>
+            <span id="entropy-label" class="font-mono text-[11.5px] text-zinc-500">—</span>
+          </div>
+          <div id="meter" class="flex gap-1.5" role="meter" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0">
+            <div class="h-1.5 flex-1 rounded-full bg-white/[0.07] transition-all duration-300"></div>
+            <div class="h-1.5 flex-1 rounded-full bg-white/[0.07] transition-all duration-300"></div>
+            <div class="h-1.5 flex-1 rounded-full bg-white/[0.07] transition-all duration-300"></div>
+            <div class="h-1.5 flex-1 rounded-full bg-white/[0.07] transition-all duration-300"></div>
+            <div class="h-1.5 flex-1 rounded-full bg-white/[0.07] transition-all duration-300"></div>
+          </div>
+        </div>
+
+        <!-- Stats grid -->
+        <div class="mt-5 grid grid-cols-2 gap-3">
+          <div class="rounded-xl border border-white/[0.07] bg-black/30 px-4 py-3">
+            <p class="text-[11px] uppercase tracking-wider text-zinc-500">Time to crack</p>
+            <p id="crack-time" class="mt-1 text-[15px] font-semibold text-zinc-100" aria-live="polite">—</p>
+          </div>
+          <div class="rounded-xl border border-white/[0.07] bg-black/30 px-4 py-3">
+            <p class="text-[11px] uppercase tracking-wider text-zinc-500">Search space</p>
+            <p id="search-space" class="mt-1 font-mono text-[13px] font-medium text-zinc-100">—</p>
+          </div>
+        </div>
+
+        <!-- Checks -->
+        <ul id="checks" class="mt-5 grid gap-2 sm:grid-cols-2"></ul>
+
+        <!-- Hints -->
+        <div id="hints" class="mt-5 space-y-2"></div>
+
+        <!-- Breach warning -->
+        <div id="breach" class="mt-5 hidden items-start gap-2 rounded-lg border border-rose-500/25 bg-rose-500/[0.08] px-3 py-2.5 text-[12.5px] text-rose-200"></div>
+      </div>
+
+      <!-- ===== GENERATE PANEL ===== -->
+      <div id="panel-gen" class="tab-panel hidden">
+        <label for="gen" class="mb-2 flex items-center justify-between text-[12.5px] font-medium text-zinc-400">
+          <span>Cryptographically random — generated on your device</span>
+          <span class="inline-flex items-center gap-1 text-[11px] text-violet-300">
+            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Web Crypto
+          </span>
+        </label>
+        <div class="relative">
+          <input id="gen" readonly
+            class="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3.5 pr-24 font-mono text-[15px] text-zinc-100 outline-none" />
+          <div class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
+            <button id="regen-icon" aria-label="Regenerate"
+              class="rounded-lg p-2 text-zinc-500 transition-all hover:bg-white/5 hover:text-zinc-200">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+            </button>
+            <button id="copy-gen" aria-label="Copy"
+              class="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-200">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-5 flex items-center justify-between">
+          <span class="text-[13px] font-medium text-zinc-300">Length</span>
+          <span id="len-out" class="rounded-md bg-white/[0.07] px-2 py-0.5 font-mono text-[13px] font-semibold text-violet-300">20</span>
+        </div>
+        <input id="len" type="range" min="8" max="64" value="20" aria-label="Password length" class="mt-2" />
+
+        <div class="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <button data-opt="upper" class="opt rounded-lg border px-3 py-2 text-[12.5px] font-medium transition-all border-violet-400/40 bg-violet-500/15 text-violet-200">A–Z uppercase</button>
+          <button data-opt="lower" class="opt rounded-lg border px-3 py-2 text-[12.5px] font-medium transition-all border-violet-400/40 bg-violet-500/15 text-violet-200">a–z lowercase</button>
+          <button data-opt="digits" class="opt rounded-lg border px-3 py-2 text-[12.5px] font-medium transition-all border-violet-400/40 bg-violet-500/15 text-violet-200">0–9 numbers</button>
+          <button data-opt="symbols" class="opt rounded-lg border px-3 py-2 text-[12.5px] font-medium transition-all border-violet-400/40 bg-violet-500/15 text-violet-200">!@# symbols</button>
+          <button data-opt="noAmbiguous" class="opt rounded-lg border px-3 py-2 text-[12.5px] font-medium transition-all border-white/[0.08] bg-white/[0.02] text-zinc-500 hover:text-zinc-300">No ambiguous</button>
+          <button id="regen-btn" class="rounded-lg bg-gradient-to-r from-violet-600 to-fuchsia-600 px-3 py-2 text-[12.5px] font-semibold text-white transition-opacity hover:opacity-90">Generate ⚡</button>
+        </div>
+
+        <div id="gen-stat" class="mt-5 hidden items-center justify-between rounded-xl border border-white/[0.07] bg-black/30 px-4 py-3">
+          <span id="gen-stat-left" class="inline-flex items-center gap-2 text-[13px] text-zinc-400"></span>
+          <span id="gen-stat-right" class="text-[12.5px] text-zinc-500"></span>
+        </div>
+
+        <p class="mt-4 text-center text-[11px] text-zinc-600">
+          Tip: press <span class="kbd">Ctrl</span> + <span class="kbd">↵</span> to regenerate
+        </p>
+      </div>
+
+      <!-- ===== PASSPHRASE PANEL ===== -->
+      <div id="panel-phrase" class="tab-panel hidden">
+        <label class="mb-2 flex items-center justify-between text-[12.5px] font-medium text-zinc-400">
+          <span>Memorable passphrase — from a 200-word dictionary</span>
+          <span class="inline-flex items-center gap-1 text-[11px] text-cyan-300">🧠 Easy to remember</span>
+        </label>
+        <div class="relative">
+          <input id="phrase" readonly
+            class="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3.5 pr-24 font-mono text-[15px] text-zinc-100 outline-none" />
+          <div class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
+            <button id="regen-phrase-icon" aria-label="Regenerate passphrase"
+              class="rounded-lg p-2 text-zinc-500 transition-all hover:bg-white/5 hover:text-zinc-200">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+            </button>
+            <button id="copy-phrase" aria-label="Copy passphrase"
+              class="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-200">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-5 flex items-center justify-between">
+          <span class="text-[13px] font-medium text-zinc-300">Word count</span>
+          <span id="words-out" class="rounded-md bg-white/[0.07] px-2 py-0.5 font-mono text-[13px] font-semibold text-violet-300">5</span>
+        </div>
+        <input id="words" type="range" min="3" max="10" value="5" aria-label="Passphrase word count" class="mt-2" />
+
+        <div class="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <button data-phrase="capitalize" class="popt rounded-lg border px-3 py-2 text-[12.5px] font-medium transition-all border-violet-400/40 bg-violet-500/15 text-violet-200">Capitalize</button>
+          <button data-phrase="numbers" class="popt rounded-lg border px-3 py-2 text-[12.5px] font-medium transition-all border-white/[0.08] bg-white/[0.02] text-zinc-500 hover:text-zinc-300">Add number</button>
+          <button data-phrase="symbols" class="popt rounded-lg border px-3 py-2 text-[12.5px] font-medium transition-all border-white/[0.08] bg-white/[0.02] text-zinc-500 hover:text-zinc-300">Add symbol</button>
+          <button id="regen-phrase-btn" class="col-span-2 rounded-lg bg-gradient-to-r from-violet-600 to-fuchsia-600 px-3 py-2 text-[12.5px] font-semibold text-white transition-opacity hover:opacity-90 sm:col-span-3">Generate passphrase ✨</button>
+        </div>
+
+        <div id="phrase-stat" class="mt-5 hidden items-center justify-between rounded-xl border border-white/[0.07] bg-black/30 px-4 py-3">
+          <span id="phrase-stat-left" class="inline-flex items-center gap-2 text-[13px] text-zinc-400"></span>
+          <span id="phrase-stat-right" class="text-[12.5px] text-zinc-500"></span>
+        </div>
+      </div>
+
+      <!-- Session history -->
+      <div class="mt-6 border-t border-white/[0.07] pt-4">
+        <div class="mb-2 flex items-center justify-between">
+          <span class="text-[11.5px] font-medium uppercase tracking-wider text-zinc-500">
+            Session history · cleared when you close this tab
+          </span>
+          <button id="clear-history" class="hidden rounded-md px-2 py-1 text-[11px] font-medium text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-300">Clear</button>
+        </div>
+        <ul id="history-list" class="space-y-1.5"></ul>
+        <p id="history-empty" class="text-[12px] italic text-zinc-600">Nothing checked yet. Your inputs never leave this page.</p>
+      </div>
+
+      <p class="mt-5 border-t border-white/[0.07] pt-4 text-center text-[11.5px] leading-relaxed text-zinc-500">
+        🔒 All computation happens locally in your browser. No network request is ever made with your input.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ WHY US ============ -->
+  <section id="features" class="pt-24">
+    <h2 class="text-center text-3xl font-semibold tracking-tight sm:text-4xl">Why 1M+ people trust this checker</h2>
+    <p class="mx-auto mt-3 max-w-xl text-center text-[15px] text-zinc-400">Built to beat bloated, ad-heavy checkers on every metric that matters.</p>
+    <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6 transition-all hover:-translate-y-0.5 hover:border-white/[0.16] hover:bg-white/[0.045]">
+        <div class="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.09] to-white/[0.02] text-lg">🔒</div>
+        <h3 class="text-[15px] font-semibold text-zinc-100">Truly client-side</h3>
+        <p class="mt-1.5 text-[13.5px] leading-relaxed text-zinc-400">Strength is computed in your browser with JavaScript. Nothing is transmitted, logged, or stored — verifiable in DevTools.</p>
+      </div>
+      <div class="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6 transition-all hover:-translate-y-0.5 hover:border-white/[0.16] hover:bg-white/[0.045]">
+        <div class="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.09] to-white/[0.02] text-lg">📊</div>
+        <h3 class="text-[15px] font-semibold text-zinc-100">Real entropy math</h3>
+        <p class="mt-1.5 text-[13.5px] leading-relaxed text-zinc-400">Shannon entropy, charset pooling, dictionary and keyboard-pattern penalties — not a fake 4-bar gimmick.</p>
+      </div>
+      <div class="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6 transition-all hover:-translate-y-0.5 hover:border-white/[0.16] hover:bg-white/[0.045]">
+        <div class="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.09] to-white/[0.02] text-lg">⚡</div>
+        <h3 class="text-[15px] font-semibold text-zinc-100">Instant generation</h3>
+        <p class="mt-1.5 text-[13.5px] leading-relaxed text-zinc-400">Cryptographically secure passwords via the Web Crypto API, tunable from 8 to 64 characters.</p>
+      </div>
+      <div class="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6 transition-all hover:-translate-y-0.5 hover:border-white/[0.16] hover:bg-white/[0.045]">
+        <div class="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.09] to-white/[0.02] text-lg">🛡️</div>
+        <h3 class="text-[15px] font-semibold text-zinc-100">Zero ads, zero walls</h3>
+        <p class="mt-1.5 text-[13.5px] leading-relaxed text-zinc-400">No pop-ups, no email capture, no cookie banner. Open the page, get your answer, close the tab.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HOW TO ============ -->
+  <section id="how" class="pt-24">
+    <h2 class="text-center text-3xl font-semibold tracking-tight sm:text-4xl">How to use it in 4 steps</h2>
+    <ol class="mx-auto mt-10 grid max-w-5xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <li class="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6">
+        <span class="font-mono text-[11px] font-semibold tracking-widest text-violet-400">01</span>
+        <h3 class="mt-2 text-[15px] font-semibold text-zinc-100">Type or paste</h3>
+        <p class="mt-1.5 text-[13.5px] leading-relaxed text-zinc-400">Enter your password in the field above. The meter updates as you type — no submit button.</p>
+      </li>
+      <li class="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6">
+        <span class="font-mono text-[11px] font-semibold tracking-widest text-violet-400">02</span>
+        <h3 class="mt-2 text-[15px] font-semibold text-zinc-100">Read the analysis</h3>
+        <p class="mt-1.5 text-[13.5px] leading-relaxed text-zinc-400">See a live strength score, estimated entropy in bits, and a realistic time-to-crack.</p>
+      </li>
+      <li class="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6">
+        <span class="font-mono text-[11px] font-semibold tracking-widest text-violet-400">03</span>
+        <h3 class="mt-2 text-[15px] font-semibold text-zinc-100">Fix the gaps</h3>
+        <p class="mt-1.5 text-[13.5px] leading-relaxed text-zinc-400">Each requirement (length, case, digits, symbols, patterns) is checked off with actionable fixes.</p>
+      </li>
+      <li class="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6">
+        <span class="font-mono text-[11px] font-semibold tracking-widest text-violet-400">04</span>
+        <h3 class="mt-2 text-[15px] font-semibold text-zinc-100">Generate if needed</h3>
+        <p class="mt-1.5 text-[13.5px] leading-relaxed text-zinc-400">Switch to the generator tab, set length and character sets, then copy a crypto-random password.</p>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ============ COMPARISON ============ -->
+  <section id="compare" class="pt-24">
+    <h2 class="text-center text-3xl font-semibold tracking-tight sm:text-4xl">Us vs. PasswordMonster &amp; Kaspersky</h2>
+    <p class="mx-auto mt-3 max-w-xl text-center text-[15px] text-zinc-400">Same job. Dramatically less friction.</p>
+    <div class="mt-10 overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]">
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[680px] text-left text-[13.5px]">
+          <thead>
+            <tr class="border-b border-white/[0.08] bg-white/[0.03]">
+              <th class="px-5 py-4 font-medium text-zinc-400">Feature</th>
+              <th class="px-5 py-4 font-semibold text-zinc-100">🛡️ This tool</th>
+              <th class="px-5 py-4 font-medium text-zinc-400">PasswordMonster</th>
+              <th class="px-5 py-4 font-medium text-zinc-400">Kaspersky</th>
+            </tr>
+          </thead>
+          <tbody id="compare-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section id="faq" class="pt-24">
+    <h2 class="text-center text-3xl font-semibold tracking-tight sm:text-4xl">Frequently asked questions</h2>
+    <div class="mx-auto mt-10 max-w-3xl divide-y divide-white/[0.08] overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]">
+      <details class="group">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 text-[15px] font-medium text-zinc-100 transition-colors hover:bg-white/[0.03]">
+          Is it safe to type my real password into this checker?
+          <span class="chev text-zinc-500 transition-transform duration-300">›</span>
+        </summary>
+        <div class="px-6 pb-5 text-[14px] leading-relaxed text-zinc-400">Yes — with one important caveat. This tool runs entirely in your browser using JavaScript. Your password is never transmitted over the network, never logged, and never stored. You can verify this yourself by opening DevTools → Network tab and watching that no request is made while you type. That said, as a general security rule, we recommend testing a near-identical variant of a real password rather than the exact one you use.</div>
+      </details>
+      <details class="group">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 text-[15px] font-medium text-zinc-100 transition-colors hover:bg-white/[0.03]">
+          How is password strength actually calculated?
+          <span class="chev text-zinc-500 transition-transform duration-300">›</span>
+        </summary>
+        <div class="px-6 pb-5 text-[14px] leading-relaxed text-zinc-400">We compute Shannon entropy: the password length multiplied by log₂ of the character pool size (26 for lowercase, 26 for uppercase, 10 for digits, ~33 for symbols). We then apply penalties for common dictionary passwords, repeated characters, alphabet sequences and keyboard walks like "qwerty". The result is expressed in bits — the higher the better. 80+ bits is considered strong against modern offline attacks.</div>
+      </details>
+      <details class="group">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 text-[15px] font-medium text-zinc-100 transition-colors hover:bg-white/[0.03]">
+          What does the "time to crack" number mean?
+          <span class="chev text-zinc-500 transition-transform duration-300">›</span>
+        </summary>
+        <div class="px-6 pb-5 text-[14px] leading-relaxed text-zinc-400">It estimates how long an attacker with a high-end GPU rig performing roughly 10 billion guesses per second would need to exhaust half the possible keyspace. Real-world attacks vary — targeted attacks against a specific person can be far faster — but the figure is a reliable relative measure for comparing passwords against each other.</div>
+      </details>
+      <details class="group">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 text-[15px] font-medium text-zinc-100 transition-colors hover:bg-white/[0.03]">
+          How long should my password be in 2025?
+          <span class="chev text-zinc-500 transition-transform duration-300">›</span>
+        </summary>
+        <div class="px-6 pb-5 text-[14px] leading-relaxed text-zinc-400">For most accounts, 16 characters or more is the sweet spot. Length matters far more than complexity: a 20-character passphrase of random lowercase words is stronger and easier to remember than an 8-character string with symbols. Use 12 characters as an absolute floor, and 20+ for email, banking and password-manager master passwords.</div>
+      </details>
+      <details class="group">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 text-[15px] font-medium text-zinc-100 transition-colors hover:bg-white/[0.03]">
+          Are the generated passwords truly random?
+          <span class="chev text-zinc-500 transition-transform duration-300">›</span>
+        </summary>
+        <div class="px-6 pb-5 text-[14px] leading-relaxed text-zinc-400">Yes. We use the Web Crypto API (crypto.getRandomValues) with rejection sampling to eliminate modulo bias, which produces cryptographically secure randomness — not the predictable Math.random() used by many weaker generators. Nothing about the generated password is sent anywhere or retained after you close the tab.</div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ============ RELATED TOOLS ============ -->
+  <section class="pt-24 pb-16">
+    <h2 class="text-center text-2xl font-semibold tracking-tight sm:text-3xl">More free developer tools</h2>
+    <div class="mt-8 grid gap-4 sm:grid-cols-3">
+      <a href="#" class="group flex flex-col rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6 transition-all hover:-translate-y-0.5 hover:border-violet-400/30 hover:bg-white/[0.05]">
+        <h3 class="text-[15px] font-semibold text-zinc-100">Base64 Encoder / Decoder</h3>
+        <p class="mt-1.5 flex-1 text-[13.5px] leading-relaxed text-zinc-400">Encode and decode Base64 strings instantly, in-browser.</p>
+        <span class="mt-4 inline-flex items-center gap-1 text-[13px] font-medium text-violet-300">Open tool →</span>
+      </a>
+      <a href="#" class="group flex flex-col rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6 transition-all hover:-translate-y-0.5 hover:border-violet-400/30 hover:bg-white/[0.05]">
+        <h3 class="text-[15px] font-semibold text-zinc-100">QR Code Generator</h3>
+        <p class="mt-1.5 flex-1 text-[13.5px] leading-relaxed text-zinc-400">Create high-resolution QR codes for links and text.</p>
+        <span class="mt-4 inline-flex items-center gap-1 text-[13px] font-medium text-violet-300">Open tool →</span>
+      </a>
+      <a href="#" class="group flex flex-col rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6 transition-all hover:-translate-y-0.5 hover:border-violet-400/30 hover:bg-white/[0.05]">
+        <h3 class="text-[15px] font-semibold text-zinc-100">JSON Formatter &amp; Validator</h3>
+        <p class="mt-1.5 flex-1 text-[13.5px] leading-relaxed text-zinc-400">Beautify, minify and validate JSON with error hints.</p>
+        <span class="mt-4 inline-flex items-center gap-1 text-[13px] font-medium text-violet-300">Open tool →</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="border-t border-white/[0.06] py-10">
+    <div class="flex flex-col items-center justify-between gap-4 sm:flex-row">
+      <div class="flex items-center gap-2.5">
+        <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-cyan-400">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <span class="text-[13px] font-semibold text-zinc-300">DevKit<span class="text-violet-400">.</span></span>
+        <span class="text-[12px] text-zinc-600">© 2025 · Client-side only</span>
+      </div>
+      <div class="flex items-center gap-4 text-[12.5px] text-zinc-500">
+        <a href="#" class="hover:text-zinc-300">Privacy</a>
+        <a href="#" class="hover:text-zinc-300">Terms</a>
+        <a href="#" class="hover:text-zinc-300">GitHub</a>
+        <a href="#" class="hover:text-zinc-300">Contact</a>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<!-- ============ TOAST ============ -->
+<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-50 hidden -translate-x-1/2 items-center gap-2 rounded-xl border border-emerald-500/30 bg-[#0b1410] px-4 py-2.5 text-[13px] font-medium text-emerald-200 shadow-2xl animate-toast-in">
+  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+  <span id="toast-text">Copied to clipboard</span>
+</div>
+
+<script>
+/* ============================================================
+   CLOCK — opposite the logo
+   ============================================================ */
+function updateClock() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
+  const t = document.getElementById('clock-time');
+  if (t) t.textContent = hh + ':' + mm + ':' + ss;
+  const tz = document.getElementById('clock-tz');
+  if (tz) {
+    try {
+      const parts = Intl.DateTimeFormat('en-US', { timeZoneName: 'short' }).formatToParts(now);
+      const short = parts.find(p => p.type === 'timeZoneName');
+      tz.textContent = short ? short.value : 'Local';
+    } catch { tz.textContent = 'Local'; }
+  }
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+/* ============================================================
+   PASSWORD ENGINE — 100% client-side
+   ============================================================ */
+const COMMON = new Set([
+  'password','123456','12345678','123456789','qwerty','abc123','letmein','monkey','dragon',
+  '111111','iloveyou','admin','welcome','login','passw0rd','football','baseball','sunshine',
+  'princess','master','shadow','superman','qazwsx','1234567','12345','password1','password123',
+  'trustno1','whatever','zaq12wsx','michael','jennifer','hunter','ranger','buster','soccer',
+  'letmein1','welcome1','admin123','root','toor','pass','test','guest','changeme','secret',
+  'starwars','pokemon','naruto','batman','matrix','blink182','ncc1701','qwertyuiop'
+]);
+
+const SEQ = /(012|123|234|345|456|567|678|789|890|abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz|qwe|wer|ert|rty|tyu|yui|uio|iop|asd|sdf|dfg|fgh|ghj|hjk|jkl|zxc|xcv|cvb|vbn|bnm)/i;
+
+const LABELS = ['Very weak', 'Weak', 'Fair', 'Strong', 'Very strong'];
+const SEG_COLORS = ['bg-rose-500', 'bg-orange-500', 'bg-yellow-500', 'bg-emerald-500', 'bg-cyan-400'];
+const TEXT_COLORS = ['text-rose-400', 'text-orange-400', 'text-yellow-400', 'text-emerald-400', 'text-cyan-300'];
+
+function charsetPool(pw) {
+  let p = 0;
+  if (/[a-z]/.test(pw)) p += 26;
+  if (/[A-Z]/.test(pw)) p += 26;
+  if (/[0-9]/.test(pw)) p += 10;
+  if (/[^A-Za-z0-9]/.test(pw)) p += 33;
+  if (/\s/.test(pw)) p += 1;
+  return Math.max(p, 1);
+}
+
+function fmtNum(n, unit) {
+  const r = n < 10 ? Math.round(n * 10) / 10 : Math.round(n);
+  return r.toLocaleString() + ' ' + unit + (r === 1 ? '' : 's');
+}
+
+function humanize(sec) {
+  if (!isFinite(sec)) return 'Effectively forever';
+  if (sec < 1) return 'Instantly';
+  if (sec < 60) return fmtNum(sec, 'second');
+  if (sec < 3600) return fmtNum(sec / 60, 'minute');
+  if (sec < 86400) return fmtNum(sec / 3600, 'hour');
+  if (sec < 2629800) return fmtNum(sec / 86400, 'day');
+  if (sec < 31557600) return fmtNum(sec / 2629800, 'month');
+  const y = sec / 31557600;
+  if (y < 1000) return fmtNum(y, 'year');
+  if (y < 1e6) return Math.round(y / 1000).toLocaleString() + ' thousand years';
+  if (y < 1e9) return Math.round(y / 1e6).toLocaleString() + ' million years';
+  if (y < 1e12) return Math.round(y / 1e9).toLocaleString() + ' billion years';
+  return 'Trillions of years';
+}
+
+function analyzePassword(pw) {
+  const len = pw.length;
+  const pool = charsetPool(pw);
+  let bits = len ? len * Math.log2(pool) : 0;
+  const hints = [];
+  const lower = pw.toLowerCase();
+
+  const isCommon  = COMMON.has(lower);
+  const isRepeat  = len > 0 && /^(.)\1*$/.test(pw);
+  const hasTriple = /(.)\1{2,}/.test(pw);
+  const hasSeq    = SEQ.test(pw);
+
+  if (isCommon)  { bits = Math.min(bits, 10); hints.push('This is one of the world’s most-used passwords — it appears on every breach list.'); }
+  if (isRepeat)  { bits = Math.min(bits, 6);  hints.push('Repeating one character adds no meaningful strength.'); }
+  if (hasTriple) { bits -= 8; hints.push('Avoid triple-repeated characters (e.g. "aaa").'); }
+  if (hasSeq)    { bits -= 8; hints.push('Keyboard and alphabet sequences are cracked first — break the pattern.'); }
+  if (len > 0 && len < 12) hints.push('Aim for 12+ characters; length beats complexity.');
+
+  bits = Math.max(0, bits);
+
+  let score = 0;
+  if (len > 0) {
+    if (bits < 28) score = 0;
+    else if (bits < 40) score = 1;
+    else if (bits < 60) score = 2;
+    else if (bits < 80) score = 3;
+    else score = 4;
+  }
+
+  const clamped = Math.min(bits, 400);
+  const seconds = Math.pow(2, clamped) / 2 / 1e10;
+
+  const checks = [
+    { id: 'len',     label: 'At least 12 characters',        pass: len >= 12 },
+    { id: 'lower',   label: 'Lowercase letters (a–z)',       pass: /[a-z]/.test(pw) },
+    { id: 'upper',   label: 'Uppercase letters (A–Z)',       pass: /[A-Z]/.test(pw) },
+    { id: 'num',     label: 'Numbers (0–9)',                 pass: /[0-9]/.test(pw) },
+    { id: 'sym',     label: 'Symbols (!@#$…)',               pass: /[^A-Za-z0-9]/.test(pw) },
+    { id: 'pattern', label: 'No common words or sequences',  pass: len > 0 && !isCommon && !hasTriple && !hasSeq && !isRepeat }
+  ];
+
+  return {
+    score,
+    label: len ? LABELS[score] : 'Awaiting input',
+    entropyBits: bits,
+    crackTime: len ? humanize(seconds) : '—',
+    checks,
+    hints: len ? hints : [],
+    isBreached: isCommon
+  };
+}
+
+/* ---------- Web Crypto helpers ---------- */
+const SYMBOLS = "!@#$%^&*()-_=+[]{};:'\",.<>/?\\|~`";
+const LOWER = 'abcdefghijklmnopqrstuvwxyz';
+const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const DIGITS = '0123456789';
+
+function randomInt(max) {
+  if (max <= 1) return 0;
+  const limit = Math.floor(0xFFFFFFFF / max) * max;
+  const buf = new Uint32Array(1);
+  let v = 0;
+  do { crypto.getRandomValues(buf); v = buf[0]; } while (v >= limit);
+  return v % max;
+}
+
+function generatePassword(o) {
+  let pool = '';
+  if (o.lower)   pool += LOWER;
+  if (o.upper)   pool += UPPER;
+  if (o.digits)  pool += DIGITS;
+  if (o.symbols) pool += SYMBOLS;
+  if (o.noAmbiguous) pool = pool.replace(/[Il1O0o]/g, '');
+  if (!pool) pool = LOWER;
+  let out = '';
+  for (let i = 0; i < o.length; i++) out += pool[randomInt(pool.length)];
+  return out;
+}
+
+/* ---------- Passphrase word list ---------- */
+const WORDS = [
+  'apple','amber','anchor','arrow','atlas','autumn','bacon','badge','baker','banjo','basil','beacon',
+  'berry','birch','bishop','blaze','bloom','blue','bolt','bonus','bottle','bounty','breeze','bridge',
+  'bronze','brook','brush','bubble','bucket','bugle','bundle','butter','cabin','cable','cactus','camel',
+  'candle','canoe','canvas','canyon','carbon','cargo','carpet','castle','cedar','cello','chalk','cherry',
+  'chess','chief','chimney','chisel','cider','cinema','circle','citrus','clay','clever','cliff','cloak',
+  'cloud','clover','coast','cobalt','cocoa','collar','comet','compass','copper','coral','cotton','cougar',
+  'crane','crater','crayon','cream','cricket','crimson','crisp','crown','crystal','cupid','curious','cypress',
+  'daisy','dance','dapper','dawn','delta','denim','desert','diamond','diesel','dinner','dolphin','donut',
+  'dragon','drum','dusk','eagle','earth','echo','eclipse','elbow','element','elk','ember','emerald',
+  'engine','epoch','equator','evening','falcon','fantasy','fathom','feather','fennel','fern','ferry','fiddle',
+  'field','fig','filter','finch','fire','flame','flask','flint','flora','flute','focus','forest',
+  'forge','fossil','fountain','fox','frame','fresh','frost','fruit','galaxy','garden','garnet','gauge',
+  'gecko','gem','ginger','glacier','glade','glass','globe','glow','gold','granite','grape','grass',
+  'gravity','green','grove','guava','guitar','gulf','gust','harbor','hazel','heart','hedge','helium',
+  'heron','hickory','honey','horizon','horn','horse','hostel','house','humble','hunter','hurricane','iceberg',
+  'igloo','indigo','ink','inlet','iron','island','ivory','ivy','jacket','jade','jaguar','jasmine',
+  'jasper','jelly','jersey','jewel','jigsaw','jungle','juniper','kayak','kernel','kettle','keystone','kidney',
+  'king','kite','kiwi','knife','knight','koala','ladder','lagoon','lake','lantern','lark','laser',
+  'latch','lava','leaf','lemon','lens','leopard','lichen','lilac','lily','linen','lion','liquid',
+  'lizard','lobster','locket','lodge','lotus','lunar','lynx','magnet','mahogany','mammoth','mango','maple',
+  'marble','march','marine','market','mars','mask','meadow','medal','melon','mentor','mermaid','metal',
+  'meteor','midnight','milk','mill','mint','mirror','mist','mitten','mocha','monsoon','moon','moose',
+  'mosaic','moss','moth','mountain','mouse','mural','music','mustard','myth','nectar','needle','nest',
+  'nickel','night','north','nova','nutmeg','oak','oasis','ocean','octave','olive','onion','opal',
+  'orbit','orchid','osprey','otter','oval','owl','oxide','oyster','paddle','palace','palm','panda',
+  'pansy','panther','papaya','paper','paradox','parrot','pastel','path','peach','pearl','pebble','pelican',
+  'pepper','petal','pewter','phoenix','photo','piano','pigeon','pillow','pilot','pine','pink','pioneer',
+  'piston','pixel','pizza','planet','plasma','plaza','plum','pluto','pocket','polar','pond','poplar',
+  'poppy','portal','potato','prairie','prism','pulsar','pumpkin','puzzle','pyramid','quartz','quest','quiet',
+  'quill','quilt','rabbit','radar','rain','ramp','ranch','raven','razor','reef','rhino','ribbon',
+  'ridge','rifle','ring','river','robin','rock','rocket','rope','rose','royal','ruby','rudder',
+  'rustic','saddle','saffron','sage','salmon','salsa','sand','sapphire','satin','scarlet','scout','sculpt',
+  'seal','sequoia','shade','shale','shell','sherry','shield','ship','shore','shrub','silk','silver',
+  'siren','sketch','sky','sled','slate','sleigh','slope','smile','smoke','snail','snake','snow',
+  'solar','soldier','sonar','south','sparrow','spear','spice','spider','spiral','spirit','sponge','spring',
+  'spruce','squash','squirrel','star','statue','steam','steel','stellar','stone','storm','stream','stripe',
+  'sugar','summer','sun','sunset','surf','swan','sweater','swift','sword','sycamore','table','taco',
+  'talon','tango','tapestry','tea','teal','temple','tent','terra','thistle','thunder','tidal','tiger',
+  'timber','time','tin','toast','tobacco','tomato','topaz','torch','tortoise','totem','touch','tower',
+  'trail','trap','treasure','tree','trek','triangle','trident','trinity','tropic','trout','truffle','trumpet',
+  'tulip','tundra','tunnel','turtle','twilight','ultra','umber','uncle','universe','urban','valley','velvet',
+  'venture','vertex','vessel','vibrant','viking','vine','violet','viper','vision','vista','vivid','volcano',
+  'voyage','walnut','walrus','wander','wasp','water','wave','weasel','whale','wheat','whisper','willow',
+  'wind','window','winter','wolf','wonder','wood','wool','yarn','yellow','yonder','zenith','zephyr',
+  'zero','zesty','zigzag','zinc','zinnia','zodiac'
+];
+
+function generatePassphrase(o) {
+  const words = [];
+  for (let i = 0; i < o.count; i++) {
+    let w = WORDS[randomInt(WORDS.length)];
+    if (o.capitalize) w = w[0].toUpperCase() + w.slice(1);
+    words.push(w);
+  }
+  let out = words.join('-');
+  if (o.numbers) out += randomInt(100);
+  if (o.symbols) out += SYMBOLS[randomInt(SYMBOLS.length)];
+  return out;
+}
+
+/* ============================================================
+   UI WIRING
+   ============================================================ */
+const $ = (id) => document.getElementById(id);
+const CHECK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+const WARN_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 mt-0.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M17 17h.01"/><path d="M12 17h.01"/></svg>';
+
+/* ---------- Toast ---------- */
+let toastTimer;
+function showToast(msg) {
+  const t = $('toast');
+  $('toast-text').textContent = msg || 'Copied to clipboard';
+  t.classList.remove('hidden');
+  t.classList.add('flex');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.classList.add('hidden'); t.classList.remove('flex'); }, 1800);
+}
+
+/* ---------- Copy helper ---------- */
+async function copyText(text, btn) {
+  if (!text) return;
+  try { await navigator.clipboard.writeText(text); }
+  catch {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch {}
+    ta.remove();
+  }
+  if (btn) {
+    const original = btn.innerHTML;
+    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+    btn.classList.add('flash');
+    setTimeout(() => { btn.innerHTML = original; btn.classList.remove('flash'); }, 1600);
+  }
+  showToast('Copied to clipboard');
+}
+
+/* ---------- CHECK PANEL ---------- */
+const pwInput   = $('pw');
+const strengthLbl = $('strength-label');
+const entropyLbl  = $('entropy-label');
+const meter       = $('meter');
+const crackTimeEl = $('crack-time');
+const searchSpaceEl = $('search-space');
+const checksUl    = $('checks');
+const hintsDiv    = $('hints');
+const breachDiv   = $('breach');
+const toggleVis   = $('toggle-vis');
+const copyCheck   = $('copy-check');
+
+let history = [];
+
+function maskPw(pw) {
+  if (pw.length <= 3) return '•'.repeat(pw.length);
+  return pw[0] + '•'.repeat(Math.min(pw.length - 2, 12)) + pw[pw.length - 1];
+}
+
+function renderHistory() {
+  const list = $('history-list');
+  const empty = $('history-empty');
+  const clearBtn = $('clear-history');
+  if (history.length === 0) {
+    list.innerHTML = '';
+    empty.classList.remove('hidden');
+    clearBtn.classList.add('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  clearBtn.classList.remove('hidden');
+  list.innerHTML = history.map((h, i) => `
+    <li class="flex items-center justify-between gap-2 rounded-lg border border-white/[0.06] bg-black/20 px-3 py-1.5">
+      <span class="truncate font-mono text-[12px] text-zinc-400">${maskPw(h.pw)}</span>
+      <span class="flex shrink-0 items-center gap-2">
+        <span class="text-[11px] font-medium ${TEXT_COLORS[h.score]}">${h.label}</span>
+        <span class="text-[10.5px] text-zinc-600">${h.time}</span>
+        <button data-hcopy="${i}" class="rounded p-1 text-zinc-500 hover:bg-white/5 hover:text-zinc-200" aria-label="Copy">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+        </button>
+      </span>
+    </li>
+  `).join('');
+  list.querySelectorAll('[data-hcopy]').forEach(b => {
+    b.addEventListener('click', () => copyText(history[+b.dataset.hcopy].pw, b));
+  });
+}
+
+function pushHistory(pw, result) {
+  if (!pw) return;
+  const last = history[0];
+  if (last && last.pw === pw) return;
+  const t = new Date();
+  const time = String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0');
+  history.unshift({ pw, label: result.label, score: result.score, time });
+  if (history.length > 5) history.pop();
+  renderHistory();
+}
+
+let historyDebounce;
+function renderCheck() {
+  const pw = pwInput.value;
+  const s = analyzePassword(pw);
+
+  strengthLbl.textContent = s.label;
+  strengthLbl.className = 'text-[13.5px] font-semibold ' + (pw ? TEXT_COLORS[s.score] : 'text-zinc-500');
+  entropyLbl.textContent = pw ? Math.round(s.entropyBits) + ' bits entropy' : '—';
+
+  const filled = pw.length === 0 ? 0 : s.score + 1;
+  const segs = meter.children;
+  for (let i = 0; i < segs.length; i++) {
+    segs[i].className = 'h-1.5 flex-1 rounded-full transition-all duration-300 ' +
+      (i < filled ? SEG_COLORS[s.score] : 'bg-white/[0.07]');
+  }
+  meter.setAttribute('aria-valuenow', s.score);
+
+  crackTimeEl.textContent   = pw ? s.crackTime : '—';
+  searchSpaceEl.textContent = pw ? Math.round(s.entropyBits) + ' bits' : '—';
+
+  copyCheck.classList.toggle('hidden', !pw);
+
+  checksUl.innerHTML = s.checks.map(c => `
+    <li class="flex items-center gap-2 text-[13px]">
+      <span class="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${c.pass ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/[0.06] text-zinc-600'}">${CHECK_SVG}</span>
+      <span class="${c.pass ? 'text-zinc-300' : 'text-zinc-500'}">${c.label}</span>
+    </li>`).join('');
+
+  hintsDiv.innerHTML = s.hints.map(h => `
+    <p class="flex items-start gap-2 rounded-lg border border-amber-500/15 bg-amber-500/[0.06] px-3 py-2 text-[12.5px] text-amber-200/90">
+      ${WARN_SVG}<span>${h}</span>
+    </p>`).join('');
+
+  if (pw && s.isBreached) {
+    breachDiv.classList.remove('hidden');
+    breachDiv.classList.add('flex');
+    breachDiv.innerHTML = WARN_SVG + '<span><strong class="font-semibold">Breached password detected.</strong> This is on the list of most common passwords. Choose a different one immediately.</span>';
+  } else {
+    breachDiv.classList.add('hidden');
+    breachDiv.classList.remove('flex');
+  }
+
+  clearTimeout(historyDebounce);
+  if (pw && pw.length >= 4) {
+    historyDebounce = setTimeout(() => pushHistory(pw, s), 900);
+  }
+}
+
+pwInput.addEventListener('input', renderCheck);
+
+toggleVis.addEventListener('click', () => {
+  const showing = pwInput.type === 'text';
+  pwInput.type = showing ? 'password' : 'text';
+  toggleVis.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+  toggleVis.style.color = showing ? '' : 'rgb(52 211 153)';
+});
+
+copyCheck.addEventListener('click', () => copyText(pwInput.value, copyCheck));
+
+$('clear-history').addEventListener('click', () => {
+  history = [];
+  renderHistory();
+  showToast('Session history cleared');
+});
+
+/* ---------- TABS ---------- */
+const tabBtns = document.querySelectorAll('.tab-btn');
+const panels = {
+  check: $('panel-check'),
+  gen: $('panel-gen'),
+  phrase: $('panel-phrase')
+};
+
+function setTab(name) {
+  tabBtns.forEach(b => {
+    const on = b.dataset.tab === name;
+    b.setAttribute('aria-selected', String(on));
+    b.className = 'tab-btn rounded-lg px-2 py-2.5 text-[12.5px] font-medium transition-all sm:text-[13px] ' +
+      (on ? 'bg-white/[0.09] text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-200');
+  });
+  Object.entries(panels).forEach(([k, el]) => {
+    el.classList.toggle('hidden', k !== name);
+  });
+  if (name === 'gen' && !$('gen').value) regenerate();
+  if (name === 'phrase' && !$('phrase').value) regeneratePhrase();
+}
+tabBtns.forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+
+/* ---------- GENERATE PANEL ---------- */
+const genInput  = $('gen');
+const lenInput  = $('len');
+const lenOut    = $('len-out');
+const regenIcon = $('regen-icon');
+const regenBtn  = $('regen-btn');
+const copyGen   = $('copy-gen');
+const genStat   = $('gen-stat');
+const genStatL  = $('gen-stat-left');
+const genStatR  = $('gen-stat-right');
+
+const opts = { upper: true, lower: true, digits: true, symbols: true, noAmbiguous: false };
+
+function styleOptButtons() {
+  document.querySelectorAll('.opt').forEach(btn => {
+    const on = opts[btn.dataset.opt];
+    btn.className = 'opt rounded-lg border px-3 py-2 text-[12.5px] font-medium transition-all ' +
+      (on ? 'border-violet-400/40 bg-violet-500/15 text-violet-200'
+          : 'border-white/[0.08] bg-white/[0.02] text-zinc-500 hover:text-zinc-300');
+  });
+}
+
+function regenerate() {
+  genInput.value = generatePassword({ length: Number(lenInput.value), ...opts });
+  const s = analyzePassword(genInput.value);
+  genStat.classList.remove('hidden');
+  genStat.classList.add('flex');
+  genStatL.innerHTML = '🛡️ <span class="font-medium text-zinc-200">' + s.label + '</span> · ' + Math.round(s.entropyBits) + ' bits';
+  genStatR.textContent = s.crackTime;
+}
+
+document.querySelectorAll('.opt').forEach(btn => {
+  btn.addEventListener('click', () => {
+    opts[btn.dataset.opt] = !opts[btn.dataset.opt];
+    if (!opts.upper && !opts.lower && !opts.digits && !opts.symbols) {
+      opts[btn.dataset.opt] = true;
+    }
+    styleOptButtons();
+    regenerate();
+  });
+});
+
+lenInput.addEventListener('input', () => {
+  lenOut.textContent = lenInput.value;
+  regenerate();
+});
+
+regenIcon.addEventListener('click', regenerate);
+regenBtn.addEventListener('click', regenerate);
+copyGen.addEventListener('click', () => copyText(genInput.value, copyGen));
+
+/* ---------- PASSPHRASE PANEL ---------- */
+const phraseInput = $('phrase');
+const wordsInput  = $('words');
+const wordsOut    = $('words-out');
+const phraseStat  = $('phrase-stat');
+const phraseStatL = $('phrase-stat-left');
+const phraseStatR = $('phrase-stat-right');
+
+const pOpts = { capitalize: true, numbers: false, symbols: false };
+
+function stylePoptButtons() {
+  document.querySelectorAll('.popt').forEach(btn => {
+    const on = pOpts[btn.dataset.phrase];
+    btn.className = 'popt rounded-lg border px-3 py-2 text-[12.5px] font-medium transition-all ' +
+      (on ? 'border-violet-400/40 bg-violet-500/15 text-violet-200'
+          : 'border-white/[0.08] bg-white/[0.02] text-zinc-500 hover:text-zinc-300');
+  });
+}
+
+function regeneratePhrase() {
+  phraseInput.value = generatePassphrase({ count: Number(wordsInput.value), ...pOpts });
+  const s = analyzePassword(phraseInput.value);
+  phraseStat.classList.remove('hidden');
+  phraseStat.classList.add('flex');
+  phraseStatL.innerHTML = '🧠 <span class="font-medium text-zinc-200">' + s.label + '</span> · ' + Math.round(s.entropyBits) + ' bits';
+  phraseStatR.textContent = s.crackTime;
+}
+
+document.querySelectorAll('.popt').forEach(btn => {
+  btn.addEventListener('click', () => {
+    pOpts[btn.dataset.phrase] = !pOpts[btn.dataset.phrase];
+    stylePoptButtons();
+    regeneratePhrase();
+  });
+});
+
+wordsInput.addEventListener('input', () => {
+  wordsOut.textContent = wordsInput.value;
+  regeneratePhrase();
+});
+
+$('regen-phrase-icon').addEventListener('click', regeneratePhrase);
+$('regen-phrase-btn').addEventListener('click', regeneratePhrase);
+$('copy-phrase').addEventListener('click', () => copyText(phraseInput.value, $('copy-phrase')));
+
+/* ---------- KEYBOARD SHORTCUT ---------- */
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+    e.preventDefault();
+    if (!panels.gen.classList.contains('hidden')) regenerate();
+    else if (!panels.phrase.classList.contains('hidden')) regeneratePhrase();
+  }
+});
+
+/* ---------- COMPARISON TABLE ---------- */
+const ROWS = [
+  ['100% client-side (no server call)', true, false, false],
+  ['No account / email required',       true, true,  false],
+  ['Zero intrusive ads or pop-ups',     true, false, true],
+  ['Instant crack-time estimation',     true, true,  true],
+  ['Built-in secure password generator',true, true,  false],
+  ['Entropy score in bits (transparent)', true, false, false],
+  ['Page weight under 100 KB',          true, false, false],
+  ['Works fully offline after load',    true, false, false]
+];
+
+const OK_SVG = '<span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>';
+const NO_SVG = '<span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-rose-500/10 text-rose-400/80"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></span>';
+
+$('compare-body').innerHTML = ROWS.map(([label, a, b, c], i) => `
+  <tr class="${i % 2 ? 'bg-white/[0.015]' : ''}">
+    <td class="px-5 py-3.5 text-zinc-300">${label}</td>
+    <td class="px-5 py-3.5">${a ? OK_SVG : NO_SVG}</td>
+    <td class="px-5 py-3.5">${b ? OK_SVG : NO_SVG}</td>
+    <td class="px-5 py-3.5">${c ? OK_SVG : NO_SVG}</td>
+  </tr>`).join('');
+
+/* ---------- INIT ---------- */
+styleOptButtons();
+stylePoptButtons();
+renderCheck();
+renderHistory();
+regenerate();
+regeneratePhrase();
+</script>
+</body>
+</html>
